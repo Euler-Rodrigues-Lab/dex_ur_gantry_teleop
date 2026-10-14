@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dex-ur-gantry-teleop"
+version = "0.1.0"
+description = "Kinematic UR7e gantry and Sharpa hand visualization"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy", "mujoco>=3.9", "urgantry-sim", "geo-kin-core", "xrt-devices"]
+
+[project.scripts]
+gantry-viz = "dex_ur_gantry_teleop.viz:main"
+gantry-generate = "dex_ur_gantry_teleop.generate:main"
+
+[tool.uv.sources]
+urgantry-sim = {path = "external/urgantry_sim", editable = true}
+geo-kin-core = {path = "external/geo_kin_core", editable = true}
+xrt-devices = {path = "external/XRT_devices", editable = true}
+
+[tool.setuptools.packages.find]
+include = ["dex_ur_gantry_teleop*"]
+
+[tool.setuptools.package-data]
+dex_ur_gantry_teleop = ["assets/*.xml", "assets/*.json"]

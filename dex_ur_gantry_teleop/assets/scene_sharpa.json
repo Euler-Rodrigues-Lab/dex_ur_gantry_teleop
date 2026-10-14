@@ -1,0 +1,11 @@
+{
+  "source": "https://github.com/kczttm/urgantry_sim",
+  "revision": "46a784ac2cb59080205e722d91084bb244195092",
+  "sha256": "16a82e9b9e9de2a2e5f1320939ca739c6d22728378583ef7bf970eabd859dc3b",
+  "hand": "sharpa",
+  "robot": "UR7e",
+  "actuators": 56,
+  "mode": "kinematic",
+  "actuator_kv": 0,
+  "note": "Position targets; force integration is not used. Meshes remain in the simulator submodule."
+}
