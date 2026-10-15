@@ -3,14 +3,16 @@ import argparse
 import time
 import mujoco
 import numpy as np
-from urgantry_sim.build_urgantry import apply_initial_view
 from . import model_path
 
 
-def apply_position_targets(model, data):
+def apply_position_targets(model, data, *, unlimited_actuators=None):
     joints = model.actuator_trnid[:, 0]
-    data.qpos[model.jnt_qposadr[joints]] = np.clip(
+    targets = np.clip(
         data.ctrl, model.actuator_ctrlrange[:, 0], model.actuator_ctrlrange[:, 1])
+    if unlimited_actuators is not None:
+        targets[unlimited_actuators] = data.ctrl[unlimited_actuators]
+    data.qpos[model.jnt_qposadr[joints]] = targets
     data.qvel[:] = 0
     data.qacc_warmstart[:] = 0
     mujoco.mj_forward(model, data)
@@ -30,7 +32,7 @@ def main():
         assert np.isfinite(data.xpos).all() and data.time == 0
         print(f"Kinematic scene OK: {model.nu} position targets, simulation time {data.time}")
         return
-    from mujoco import viewer as mj_viewer
+    from .viewer import managed_viewer, configure_camera
     reset_requested = False
 
     def key_callback(key):
@@ -38,9 +40,10 @@ def main():
         if key in (ord("R"), ord("r")):
             reset_requested = True
 
-    with mj_viewer.launch_passive(model, data, key_callback=key_callback,
+    with managed_viewer(model, data, key_callback=key_callback,
             show_left_ui=args.show_ui, show_right_ui=args.show_ui) as viewer:
-        apply_initial_view(viewer)
+        with viewer.lock():
+            configure_camera(viewer.cam)
         print("UR7e + Sharpa kinematic preview. R: reset home. Close window to exit.", flush=True)
         while viewer.is_running():
             with viewer.lock():

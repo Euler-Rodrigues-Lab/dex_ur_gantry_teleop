@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 dependencies = ["numpy", "mujoco>=3.9", "urgantry-sim", "geo-kin-core", "xrt-devices"]
 
 [project.scripts]
+gantry-teleop = "dex_ur_gantry_teleop.teleop:main"
 gantry-viz = "dex_ur_gantry_teleop.viz:main"
 gantry-generate = "dex_ur_gantry_teleop.generate:main"
 
@@ -23,4 +24,15 @@ xrt-devices = {path = "external/XRT_devices", editable = true}
 include = ["dex_ur_gantry_teleop*"]
 
 [tool.setuptools.package-data]
-dex_ur_gantry_teleop = ["assets/*.xml", "assets/*.json"]
+dex_ur_gantry_teleop = ["assets/*.xml", "assets/*.json", "assets/sample_motion/*.npz", "assets/sample_motion/*.md"]
+
+[project.optional-dependencies]
+test = ["pytest", "xrt-devices[recording]"]
+devices = ["xrt-devices[xr,recording]"]
+mediapipe = ["xrt-devices[mediapipe]"]
+
+[tool.geo-kin]
+product = "urgantry-sharpa"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
