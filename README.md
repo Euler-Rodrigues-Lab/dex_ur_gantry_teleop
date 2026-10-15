@@ -134,7 +134,7 @@ contains the supplied UR7e model. Asset licenses remain in the submodule.
 - Rust: 400 random reachable arm targets, 200 upstream branch-set comparisons,
   session reset/alignment checks, existing seven Sharpa tests, and eight Python
   binding license/banner tests passed.
-- Current application suite: 14 tests, including both complete recordings,
+- Current application suite: 15 tests, including both complete recordings,
   MuJoCo arm/hand FK, recovered distal landmarks, reset, both body modes,
   unrestricted multi-turn seeds, simulator clipping and invalid inputs.
 - With no offset and the corrected right palm frame, both complete recordings

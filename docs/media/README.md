@@ -6,7 +6,8 @@ First-frame body alignment, no positional offset, unrestricted arm IK, limited
 finger joints, kinematic `mj_forward` only. The solver runs at 60 Hz; MP4 is
 640×480 at 30 fps, and the looping GIF preview is 480×360 at 15 fps. Playback
 uses the recordings' original speed. The full skeleton supplies distal finger
-landmarks. The blue overlay is the recorded human, not collision geometry.
+landmarks. The blue overlay is the recorded human, not collision geometry. The exporter copies initialized live overlay geometry
+directly, preserving capsule endpoints, radius, color and material.
 
 Regenerate from the repository root with FFmpeg installed and your license set:
 

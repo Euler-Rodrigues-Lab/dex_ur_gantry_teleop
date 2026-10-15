@@ -44,3 +44,27 @@ class ReplayOverlay:
         translation = self.robot_origin + self.robot_rotation @ self.offset
         self.human.set_base_offset(reference_p - rotation.T @ translation, rotation)
         return self.human.draw(recorded)
+
+
+def append_overlay_scene(destination, source):
+    """Copy initialized live-viewer geoms without reinterpreting their sizes.
+
+    mjv_initGeom accepts a capsule as [radius, half_length, unused], but stores
+    it as [radius, radius, half_length]. Reinitializing from stored sizes would
+    silently replace every limb's half-length with its radius.
+    """
+    if destination.ngeom + source.ngeom > destination.maxgeom:
+        raise RuntimeError('Insufficient overlay scene capacity')
+    arrays = ('size', 'pos', 'mat', 'rgba', 'texrepeat')
+    scalars = ('type', 'dataid', 'objtype', 'objid', 'category', 'matid',
+               'texid', 'texuniform', 'texcoord', 'segid', 'emission',
+               'specular', 'shininess', 'reflectance', 'label', 'camdist',
+               'modelrbound', 'transparent')
+    for index in range(source.ngeom):
+        src = source.geoms[index]
+        dst = destination.geoms[destination.ngeom]
+        for name in arrays:
+            getattr(dst, name)[:] = getattr(src, name)
+        for name in scalars:
+            setattr(dst, name, getattr(src, name))
+        destination.ngeom += 1

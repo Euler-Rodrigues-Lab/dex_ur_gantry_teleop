@@ -32,3 +32,28 @@ def test_recorded_overlay_alignment_and_reset():
             assert viewer.user_scn.ngeom == 0
             overlay.reset()
             assert overlay.anchor is None and overlay.offset is None
+
+
+def test_export_preserves_live_capsule_endpoints_and_material():
+    from geo_kin_core.viz import capsules
+    from dex_ur_gantry_teleop.visualization import append_overlay_scene
+    model=mujoco.MjModel.from_xml_string('<mujoco/>')
+    live=SimpleNamespace(user_scn=mujoco.MjvScene(model,maxgeom=10))
+    exported=mujoco.MjvScene(model,maxgeom=10)
+    # Keep an existing robot geom ahead of the appended human overlay.
+    exported.ngeom=1
+    exported.geoms[0].pos[:]=[9,8,7]
+    p1=np.array([0.2,0.1,1.3]);p2=np.array([-0.1,0.4,0.8])
+    capsules.add_capsule(live,p1,p2,0.035,(0.15,0.55,1.,0.55))
+    capsules.add_sphere(live,[0,0,1.6],0.09)
+    live.user_scn.geoms[0].reflectance=0.25
+    append_overlay_scene(exported,live.user_scn)
+    assert exported.ngeom==3
+    np.testing.assert_array_equal(exported.geoms[0].pos,[9,8,7])
+    capsule=exported.geoms[1]
+    axis=capsule.mat[:,2]
+    np.testing.assert_allclose(capsule.pos-axis*capsule.size[2],p1,atol=1e-7)
+    np.testing.assert_allclose(capsule.pos+axis*capsule.size[2],p2,atol=1e-7)
+    for src,dst in zip(live.user_scn.geoms[:2],exported.geoms[1:3]):
+        for name in ('type','size','pos','mat','rgba','reflectance','transparent'):
+            np.testing.assert_array_equal(getattr(src,name),getattr(dst,name))

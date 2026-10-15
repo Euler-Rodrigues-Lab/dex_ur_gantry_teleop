@@ -13,7 +13,7 @@ from urgantry_sim.build_urgantry import ARM_JOINTS
 from dex_ur_gantry_teleop import model_path
 from dex_ur_gantry_teleop.input import from_recording
 from dex_ur_gantry_teleop.viewer import configure_camera
-from dex_ur_gantry_teleop.visualization import ReplayOverlay
+from dex_ur_gantry_teleop.visualization import ReplayOverlay, append_overlay_scene
 from dex_ur_gantry_teleop.viz import apply_position_targets
 
 
@@ -56,13 +56,7 @@ def render(sample, destination):
                     apply_position_targets(model,data,unlimited_actuators=arms['left']+arms['right'])
                     if tick%2:continue
                     renderer.update_scene(data,camera=camera)
-                    for i in range(viewer.user_scn.ngeom):
-                        if renderer.scene.ngeom>=renderer.scene.maxgeom:
-                            raise RuntimeError('Insufficient overlay scene capacity')
-                        src=viewer.user_scn.geoms[i]
-                        dst=renderer.scene.geoms[renderer.scene.ngeom]
-                        mujoco.mjv_initGeom(dst,src.type,src.size.astype(float),src.pos.astype(float),src.mat.astype(float).ravel(),src.rgba)
-                        renderer.scene.ngeom+=1
+                    append_overlay_scene(renderer.scene,viewer.user_scn)
                     encoder.stdin.write(renderer.render().tobytes())
                     if tick%120==0:print(f'{sample}: {tick/60:.0f}/{source.duration:.1f} seconds',flush=True)
         finally:
