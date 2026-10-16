@@ -7,19 +7,19 @@
 
 Full recordings at original speed · kinematic replay · human overlay enabled.
 
-Bimanual UR7e EEF retargeting with Sharpa Wave finger alignment, using the exact
+Bimanual UR7e EEF retargeting with Sharpa Wave or Wuji finger alignment, using the exact
 [urgantry_sim](https://github.com/kczttm/urgantry_sim) model. The licensed Rust
 `geo_kin` wheel solves six arm joints per side from hand orientation and index-MCP
-position. Human elbows are not an arm objective. Full finger landmarks drive the
-existing Sharpa Alignment solver. The gantry stays fixed; collision avoidance
-and Wuji retargeting are not implemented.
+position. Human elbows are not an arm objective. Full finger landmarks drive hand-specific Alignment solvers. The gantry stays fixed; collision avoidance
+is not implemented.
 
 ## Setup and replay
 
 ```bash
 git submodule update --init --recursive
 uv sync
-uv run gantry-viz                 # model preview, no license needed
+uv run gantry-viz                 # Sharpa preview, no license needed
+uv run gantry-viz --hand wuji      # Wuji preview
 ```
 
 Register the supplied organization wheel and signed license (replace the bundle
@@ -55,6 +55,43 @@ model home pose. `gantry-viz --show-ui` exposes actuator sliders. Replay shows a
 when recorded, aligned with the same body mapping and optional EEF offset. Use
 `--no-human-overlay` to hide it. Recenter also resets the overlay alignment.
 Live-device human overlays and goal-frame overlays are not yet provided.
+
+## Selecting Wuji
+
+Sharpa remains the default. Use `--hand wuji` for both 20-joint Wuji hands:
+
+```bash
+uv run gantry-teleop --hand wuji --sample picking_up_mustard --loop
+uv run gantry-teleop --hand wuji --sample ipman_roll --loop
+uv run gantry-teleop --hand wuji --device xr
+uv run gantry-generate --hand wuji
+```
+
+The wheel must include `wuji` and the signed license must grant it. The updated
+CMU IAM bundle enables `urgantry`, `sharpa` and `wuji`, with the original
+2027-10-14 expiry. Re-register the updated bundle with `--replace` and reinstall
+as above. Both hand variants run from that same wheel; the existing project
+provisioning product remains `urgantry-sharpa`. A Wuji-specific environment can
+register the wheel as `urgantry-wuji` instead.
+
+`scene_wuji.xml` has 52 position actuators: 6 arm + 20 hand per side. Its geometry
+comes from the pinned simulator's Wuji v1.0.2 model. Named sites mark the model's
+authored tip-link origins. The separate model signature includes these sites
+and explicit position controls; the original simulator submodule is unchanged.
+
+Wuji uses the same index-MCP palm-box EEF target and body alignment. Its new
+hand solver aligns thumb CMC→MCP→IP→tip and finger MCP→PIP→DIP→tip directions.
+SP2 seeds the proximal joint pair, a small bounded analytic-Jacobian refinement
+accounts for its offset axes, and SP1 solves the distal joints. Each hand emits
+20 angles with model limits; missing fingers retain previous commands. The
+six-joint arm IK is unchanged. No hand position-matching mode is provided.
+
+The video exporter accepts `--hand wuji`; it writes suffixed filenames without
+overwriting the Sharpa README previews:
+
+```bash
+uv run python scripts/render_replays.py --hand wuji --output docs/media
+```
 
 ## Input and alignment
 
@@ -134,7 +171,7 @@ contains the supplied UR7e model. Asset licenses remain in the submodule.
 - Rust: 400 random reachable arm targets, 200 upstream branch-set comparisons,
   session reset/alignment checks, existing seven Sharpa tests, and eight Python
   binding license/banner tests passed.
-- Current application suite: 15 tests, including both complete recordings,
+- Current application suite: 17 tests, including both complete recordings,
   MuJoCo arm/hand FK, recovered distal landmarks, reset, both body modes,
   unrestricted multi-turn seeds, simulator clipping and invalid inputs.
 - With no offset and the corrected right palm frame, both complete recordings
@@ -145,8 +182,11 @@ contains the supplied UR7e model. Asset licenses remain in the submodule.
 - Nearest-branch selection minimizes joint distance; it is not a velocity limiter.
   `ipman_roll` still contains large joint changes near singular configurations.
   These kinematic commands are not a hardware trajectory controller.
+- Wuji: 200 random mounted arm/hand FK cases match MuJoCo; 80 synthetic
+  articulated hand poses verify all segment directions. Both complete replays
+  accept every arm target, with finite bounded 20-joint hand commands.
 - Live devices, dynamic simulation and hardware have not been validated.
-  No continuous offset adaptation, collision filter or Wuji solver is supplied.
+  No continuous offset adaptation or collision filter is supplied.
 
 To run the licensed application tests:
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dex-ur-gantry-teleop"
 version = "0.1.0"
-description = "Kinematic UR7e gantry and Sharpa hand visualization"
+description = "Kinematic UR7e gantry teleoperation with Sharpa and Wuji hands"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["numpy", "mujoco>=3.9", "urgantry-sim", "geo-kin-core", "xrt-devices"]

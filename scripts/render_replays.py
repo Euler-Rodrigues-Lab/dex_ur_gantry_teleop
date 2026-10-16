@@ -10,21 +10,21 @@ import geo_kin
 from geo_kin_core.spec import sha256_of_file
 from xrt_devices.integrations.geo_kin import open_motion_source
 from urgantry_sim.build_urgantry import ARM_JOINTS
-from dex_ur_gantry_teleop import model_path
+from dex_ur_gantry_teleop import model_path, load_model
 from dex_ur_gantry_teleop.input import from_recording
 from dex_ur_gantry_teleop.viewer import configure_camera
 from dex_ur_gantry_teleop.visualization import ReplayOverlay, append_overlay_scene
 from dex_ur_gantry_teleop.viz import apply_position_targets
 
 
-def render(sample, destination):
-    if sha256_of_file(model_path()) != geo_kin.URGANTRY_MODEL_SHA256:
+def render(sample, destination, hand="sharpa"):
+    session=geo_kin.RetargetSession(robot='urgantry',hand=hand,
+        collision_avoidance=False,functional_offset=False,arm_ik_limited=False)
+    if sha256_of_file(model_path(hand)) != session.model_sha256:
         raise RuntimeError('Wheel/model signature mismatch')
-    model=mujoco.MjModel.from_xml_path(str(model_path()))
+    model=load_model(hand)
     data=mujoco.MjData(model)
     mujoco.mj_resetDataKeyframe(model,data,model.key('home').id)
-    session=geo_kin.RetargetSession(robot='urgantry',hand='sharpa',
-        collision_avoidance=False,functional_offset=False,arm_ik_limited=False)
     arms={side:[model.actuator(side+'_'+name).id for name in ARM_JOINTS] for side in ('left','right')}
     hands={side:[model.actuator(name).id for name in session.hand_joint_names(side)] for side in arms}
     session.reset(data.ctrl[arms['right']],data.ctrl[arms['left']])
@@ -32,7 +32,8 @@ def render(sample, destination):
     viewer=SimpleNamespace(user_scn=mujoco.MjvScene(model,maxgeom=2000))
     overlay=ReplayOverlay(viewer,functional_offset=False)
     camera=mujoco.MjvCamera();configure_camera(camera)
-    mp4=destination/f'{sample}.mp4'
+    basename=sample if hand=='sharpa' else f'{sample}_{hand}'
+    mp4=destination/f'{basename}.mp4'
     command=['ffmpeg','-hide_banner','-loglevel','error','-y','-f','rawvideo',
              '-pixel_format','rgb24','-video_size','640x480','-framerate','30',
              '-i','pipe:0','-an','-c:v','libx264','-preset','slow','-crf','20',
@@ -64,17 +65,18 @@ def render(sample, destination):
         if encoder.wait()!=0:raise RuntimeError('Video encoding failed')
     subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',str(mp4),
         '-filter_complex','fps=15,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=3',
-        '-loop','0',str(destination/f'{sample}.gif')],check=True)
+        '-loop','0',str(destination/f'{basename}.gif')],check=True)
     print(f'{sample}: complete; held arm updates={held}',flush=True)
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--hand',choices=['sharpa','wuji'],default='sharpa')
     parser.add_argument('--output',type=Path,default=Path(__file__).resolve().parents[1]/'docs/media')
     parser.add_argument('--sample',choices=['ipman_roll','picking_up_mustard'])
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     for sample in [args.sample] if args.sample else ['picking_up_mustard','ipman_roll']:
-        render(sample,args.output)
+        render(sample,args.output,args.hand)
 
 
 if __name__=='__main__':main()

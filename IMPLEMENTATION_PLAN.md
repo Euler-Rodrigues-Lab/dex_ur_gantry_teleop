@@ -1,6 +1,6 @@
 # UR gantry EEF teleoperation implementation checklist
 
-Status: simulator XML and kinematic visualization milestone authorized; remaining retargeting implementation is planned. No commits requested.
+Status: Rust retargeting and one-year CMU IAM wheel implemented on 2026-10-14. No commits requested. The original detailed checklist below is retained as planning history; the completion ledger records delivered scope and remaining work.
 Prepared 2026-10-13. Repository: `Euler-Rodrigues-Lab/dex_ur_gantry_teleop`.
 
 ## Confirmed scope
@@ -114,3 +114,53 @@ Reference: pinned [`three_parallel`](https://github.com/rpiRobotics/ik-geo/blob/
 - [x] Compared reloaded body positions/rotations against the upstream assembled model at home and ten random configurations.
 - [x] Added kinematic viewer (mj_forward only), reset key, optional joint-control panels, and headless startup check.
 - [x] Started the interactive viewer for inspection. No commits made.
+
+## Retargeting completion ledger — 2026-10-14
+
+- [x] Private `geo-kin-ur-gantry` crate, `urgantry` feature, licensed session dispatch and `urgantry-sharpa` provisioning.
+- [x] Exact XML arm/Sharpa Wave specs, model signature guard, index-MCP TCP and shoulder-intersection body frame.
+- [x] Analytic three-parallel IK with the required intersecting-wrist specialization; independent MuJoCo and upstream branch parity tests.
+- [x] Existing Sharpa Alignment algorithm using mounted Wave geometry, named 22-joint mapping and hand FK checks.
+- [x] First valid engaged frame anchoring or live shoulder-attached mapping; one shared fixed calibration offset, explicit recenter, independent holds.
+- [x] Explicit EEF types, XRT/MediaPipe adapters without elbow dependence and legacy replay conversion; local submodule edits retained.
+- [x] Kinematic-only runtime, both bundled samples, documented unreachable targets, README and paper attribution.
+- [x] One-year signed academic CMU IAM license for sarveshp@andrew.cmu.edu, restricted urgantry/sharpa wheel and redistribution bundle.
+- [ ] Publish shared submodule changes and advance pins (no commit/push requested).
+- [ ] Exercise live XR/MediaPipe acquisition and interactive teleop with the recipient.
+- [ ] Dedicated EEF recording/serialization format, human/goal overlays, exposed residual/branch diagnostics and broader singular-trajectory tests.
+- [ ] Future optional scope: mobile robot-base pose, configurable position scale, dynamic servo simulation and Wuji. These are not supplied in this fixed-gantry version.
+
+Actual geometry makes general SP6 rank deficient; `three_parallel_two_intersecting`
+provides SP4/SP4 initialization and preserves the remaining requested decomposition.
+Calibration uses the first valid engaged frame. Continuous adaptive offset remains
+explicitly deferred. Existing plan items describing dynamic stepping, full overlays,
+mobile-base input, or residual diagnostics are not completion claims.
+
+
+## Follow-up corrections — 2026-10-14
+
+- [x] No-offset application default; fixed translation remains opt-in via `--offset`.
+- [x] Unrestricted arm angles, verified nearest IK branch/whole-turn lift, reset policy and simulator clipping override; hand limits retained.
+- [x] Wave right-hand palm forward-axis correction with existing HA4 parity preserved.
+- [x] Recover measured DIP and thumb CMC/IP from replay skeletons and live XR.
+- [x] Complete both recordings with every arm EEF target accepted; regression tests cover position and orientation.
+
+- [x] Replay `--loop` with deterministic reset per pass, total `--steps` cap, joined renderer shutdown and clean Ctrl+C. Fourteen application tests pass; real-window one-pass, loop and early-stop checks exit without GLX errors.
+- [x] OpenArm-style front three-quarter camera, rotated into the gantry frame and shared by preview/replay.
+
+
+## Wuji implementation — 2026-10-15
+
+- [x] Exact pinned Wuji v1.0.2 mounted scene, 52 explicit position actuators,
+  named authored tip-link frames; original geometry matches 11 upstream poses.
+- [x] `geo-kin-wuji` 20-joint direction alignment using SP2 seeds, offset-aware
+  bounded proximal refinement, and SP1 distal alignment. Shared landmark and
+  index-MCP palm conventions, hand-specific geometry and limits.
+- [x] Generalized gantry hand adapter, mounted arm specs, license/build feature,
+  model hash, hand names and fingertip FK; retained Sharpa defaults.
+- [x] `--hand wuji` for preview, replay, live input and video exporter.
+- [x] 17 app tests, independent MuJoCo FK, 80 synthetic articulation tests,
+  both full replays, offscreen preview and real-window startup/shutdown.
+- [x] Rebuilt CMU wheel/license with Wuji, unchanged expiration; clean install
+  validation, old-license rejection and release binary hygiene.
+- [ ] Live XR/MediaPipe acquisition and physical Wuji hardware validation.

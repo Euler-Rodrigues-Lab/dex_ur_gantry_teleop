@@ -8,13 +8,14 @@ from geo_kin_core.session import resolve_session
 from geo_kin_core.spec import sha256_of_file
 from geo_kin_core.types import EEFFrame
 from urgantry_sim.build_urgantry import ARM_JOINTS
-from . import model_path
+from . import model_path, load_model
 from .input import from_action, from_recording
 from .viz import apply_position_targets
 
 
 def _run():
     p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--hand',choices=['sharpa','wuji'],default='sharpa')
     p.add_argument('--device',choices=['replay','xr','mediapipe'],default='replay')
     p.add_argument('--frames',help='Existing geo_kin_core frame-stream NPZ')
     p.add_argument('--sample',choices=['ipman_roll','picking_up_mustard'],default='ipman_roll')
@@ -36,12 +37,11 @@ def _run():
     if args.loop and args.device!='replay':p.error('--loop is only available for replay')
     if args.device=='replay' and not args.frames:
         args.frames=str(model_path().parent/'sample_motion'/f'{args.sample}.npz')
-    import geo_kin
-    if sha256_of_file(model_path()) != geo_kin.URGANTRY_MODEL_SHA256:
-        raise RuntimeError('Simulator XML differs from the geometry embedded in this wheel')
-    session=resolve_session('urgantry','sharpa',backend='licensed',collision_avoidance=False,
+    session=resolve_session('urgantry',args.hand,backend='licensed',collision_avoidance=False,
                             base_alignment_mode=args.alignment,functional_offset=not args.no_offset,arm_ik_limited=args.arm_joint_limits)
-    model=mujoco.MjModel.from_xml_path(str(model_path()));data=mujoco.MjData(model)
+    if sha256_of_file(model_path(args.hand)) != session.model_sha256:
+        raise RuntimeError('Simulator XML differs from the geometry embedded in this wheel')
+    model=load_model(args.hand);data=mujoco.MjData(model)
     mujoco.mj_resetDataKeyframe(model,data,model.key('home').id)
     arms={side:[model.actuator(f'{side}_{name}').id for name in ARM_JOINTS] for side in ['left','right']}
     hands={side:[model.actuator(name).id for name in session.hand_joint_names(side)] for side in arms}

@@ -3,7 +3,7 @@ import argparse
 import time
 import mujoco
 import numpy as np
-from . import model_path
+from . import model_path, load_model
 
 
 def apply_position_targets(model, data, *, unlimited_actuators=None):
@@ -20,10 +20,11 @@ def apply_position_targets(model, data, *, unlimited_actuators=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--hand", choices=["sharpa", "wuji"], default="sharpa")
     parser.add_argument("--show-ui", action="store_true", help="show joint target controls")
     parser.add_argument("--headless", action="store_true", help="validate one frame without a window")
     args = parser.parse_args()
-    model = mujoco.MjModel.from_xml_path(str(model_path()))
+    model = load_model(args.hand)
     data = mujoco.MjData(model)
     home = model.key("home").id
     mujoco.mj_resetDataKeyframe(model, data, home)
@@ -44,7 +45,7 @@ def main():
             show_left_ui=args.show_ui, show_right_ui=args.show_ui) as viewer:
         with viewer.lock():
             configure_camera(viewer.cam)
-        print("UR7e + Sharpa kinematic preview. R: reset home. Close window to exit.", flush=True)
+        print(f"UR7e + {args.hand.title()} kinematic preview. R: reset home. Close window to exit.", flush=True)
         while viewer.is_running():
             with viewer.lock():
                 if reset_requested:

@@ -119,6 +119,6 @@ class SolverTests(unittest.TestCase):
     def test_invalid_api(self):
         with self.assertRaises(ValueError):self.session.eef_ik('left',[0,0,0],np.zeros((3,3)))
         with self.assertRaises(ValueError):self.session.reset([0,0],None)
-        with self.assertRaises(ValueError):geo_kin.RetargetSession(robot='urgantry',hand='wuji')
+        with self.assertRaises(ValueError):geo_kin.RetargetSession(robot='urgantry',hand='unsupported')
 
 if __name__=='__main__':unittest.main()
