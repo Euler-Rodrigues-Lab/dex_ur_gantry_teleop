@@ -17,9 +17,9 @@ from dex_ur_gantry_teleop.visualization import ReplayOverlay, append_overlay_sce
 from dex_ur_gantry_teleop.viz import apply_position_targets
 
 
-def render(sample, destination, hand="sharpa"):
+def render(sample, destination, hand="sharpa", workspace_offset=(0., 0., 0.)):
     session=geo_kin.RetargetSession(robot='urgantry',hand=hand,
-        collision_avoidance=False,functional_offset=False,arm_ik_limited=False)
+        collision_avoidance=False,functional_offset=False,arm_ik_limited=False,workspace_offset=workspace_offset)
     if sha256_of_file(model_path(hand)) != session.model_sha256:
         raise RuntimeError('Wheel/model signature mismatch')
     model=load_model(hand)
@@ -30,7 +30,7 @@ def render(sample, destination, hand="sharpa"):
     session.reset(data.ctrl[arms['right']],data.ctrl[arms['left']])
     source=open_motion_source(frames=str(model_path().parent/'sample_motion'/f'{sample}.npz'))
     viewer=SimpleNamespace(user_scn=mujoco.MjvScene(model,maxgeom=2000))
-    overlay=ReplayOverlay(viewer,functional_offset=False)
+    overlay=ReplayOverlay(viewer,functional_offset=False,workspace_offset=workspace_offset)
     camera=mujoco.MjvCamera();configure_camera(camera)
     basename=sample if hand=='sharpa' else f'{sample}_{hand}'
     mp4=destination/f'{basename}.mp4'
@@ -74,9 +74,10 @@ def main():
     parser.add_argument('--hand',choices=['sharpa','wuji'],default='sharpa')
     parser.add_argument('--output',type=Path,default=Path(__file__).resolve().parents[1]/'docs/media')
     parser.add_argument('--sample',choices=['ipman_roll','picking_up_mustard'])
+    parser.add_argument('--workspace-offset', nargs=3, type=float, default=(0.,0.,0.), metavar=('X','Y','Z'), help='Workspace translation in meters: forward, left, up')
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     for sample in [args.sample] if args.sample else ['picking_up_mustard','ipman_roll']:
-        render(sample,args.output,args.hand)
+        render(sample,args.output,args.hand,args.workspace_offset)
 
 
 if __name__=='__main__':main()

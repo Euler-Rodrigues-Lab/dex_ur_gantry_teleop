@@ -231,3 +231,32 @@ using subproblem decomposition**, *Mechanism and Machine Theory* 209, 105971
 Adapted IK orchestration retains BSD-3-Clause attribution in the wheel's
 `THIRD_PARTY_LICENSES`. Shared input/simulation remains in this public app and
 its submodules; the licensed solver is distributed separately.
+
+### Manual workspace translation
+
+Use `--workspace-offset X Y Z` to shift both hand targets by a fixed translation
+in meters in the robot shoulder-midpoint frame: **+X forward, +Y left, +Z up**.
+For example, move the workspace 5 cm forward and 10 cm up:
+
+```bash
+uv run gantry-teleop --hand wuji --sample picking_up_mustard --loop --workspace-offset 0.05 0 0.10
+```
+
+The default is `0 0 0`. This works with either alignment mode and either hand.
+It adds to automatic initial calibration if `--offset` is also supplied; without
+that flag it is the only workspace translation. Hand orientations and relative
+hand placement are preserved. The human overlay uses the same translation.
+Reset/recenter and replay loops preserve the manual value while recalibrating
+the optional automatic offset. Large shifts can make targets unreachable.
+
+The updated wheel exposes the same setting:
+
+```python
+session = geo_kin.RetargetSession(
+    robot="urgantry", hand="wuji", functional_offset=False,
+    workspace_offset=(0.05, 0.0, 0.10), arm_ik_limited=False,
+    collision_avoidance=False,
+)
+```
+
+Older wheels must be upgraded to accept `workspace_offset`.

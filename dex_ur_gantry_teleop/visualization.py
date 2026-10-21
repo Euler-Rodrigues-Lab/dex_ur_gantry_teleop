@@ -4,7 +4,10 @@ from geo_kin_core.viz import HumanCapsuleViz, capsules
 
 
 class ReplayOverlay:
-    def __init__(self, viewer, *, alignment='first_frame', functional_offset=True):
+    def __init__(self, viewer, *, alignment='first_frame', functional_offset=True, workspace_offset=(0., 0., 0.)):
+        self.workspace_offset = np.asarray(workspace_offset, dtype=float).copy()
+        if self.workspace_offset.shape != (3,) or not np.isfinite(self.workspace_offset).all():
+            raise ValueError("workspace_offset must contain three finite values")
         self.viewer = viewer
         self.alignment = alignment
         self.functional_offset = functional_offset
@@ -41,7 +44,7 @@ class ReplayOverlay:
                 self.offset = np.zeros(3)
         # HumanCapsuleViz applies rotation @ (world_point - position).
         rotation = self.robot_rotation @ reference_r.T
-        translation = self.robot_origin + self.robot_rotation @ self.offset
+        translation = self.robot_origin + self.robot_rotation @ (self.offset + self.workspace_offset)
         self.human.set_base_offset(reference_p - rotation.T @ translation, rotation)
         return self.human.draw(recorded)
 

@@ -29,16 +29,18 @@ def _run():
     offset.add_argument('--offset',dest='no_offset',action='store_false',help='Enable fixed initial position offset')
     offset.add_argument('--no-offset',dest='no_offset',action='store_true',help='Use shoulder-frame alignment without translation (default)')
     p.set_defaults(no_offset=True)
+    p.add_argument("--workspace-offset", nargs=3, type=float, default=(0., 0., 0.), metavar=("X", "Y", "Z"), help="Manual translation in meters: forward, left, up; added to optional calibration")
     p.add_argument('--arm-joint-limits',action='store_true',help='Enforce model arm limits; default uses continuous unrestricted angles')
     p.add_argument('--host',default='0.0.0.0');p.add_argument('--port',type=int,default=8080)
     p.add_argument('--camera',type=int,default=0)
     args=p.parse_args()
     if not np.isfinite(args.rate) or args.rate<=0 or args.steps<0:p.error('rate must be positive and steps nonnegative')
+    if not np.isfinite(args.workspace_offset).all():p.error("workspace offset must be finite")
     if args.loop and args.device!='replay':p.error('--loop is only available for replay')
     if args.device=='replay' and not args.frames:
         args.frames=str(model_path().parent/'sample_motion'/f'{args.sample}.npz')
     session=resolve_session('urgantry',args.hand,backend='licensed',collision_avoidance=False,
-                            base_alignment_mode=args.alignment,functional_offset=not args.no_offset,arm_ik_limited=args.arm_joint_limits)
+                            base_alignment_mode=args.alignment,functional_offset=not args.no_offset,arm_ik_limited=args.arm_joint_limits,workspace_offset=args.workspace_offset)
     if sha256_of_file(model_path(args.hand)) != session.model_sha256:
         raise RuntimeError('Simulator XML differs from the geometry embedded in this wheel')
     model=load_model(args.hand);data=mujoco.MjData(model)
@@ -71,7 +73,7 @@ def _run():
         overlay=None
         if viewer is not None and args.device=='replay' and not args.no_human_overlay:
             from .visualization import ReplayOverlay
-            overlay=ReplayOverlay(viewer,alignment=args.alignment,functional_offset=not args.no_offset)
+            overlay=ReplayOverlay(viewer,alignment=args.alignment,functional_offset=not args.no_offset,workspace_offset=args.workspace_offset)
         replay_tick=0
         count=0;accepted={side:0 for side in arms};held={side:0 for side in arms}
         while (not args.steps or count<args.steps) and (viewer is None or viewer.is_running()):
