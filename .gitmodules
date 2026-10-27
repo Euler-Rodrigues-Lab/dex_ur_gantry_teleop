@@ -1,9 +1,3 @@
 [submodule "external/urgantry_sim"]
 	path = external/urgantry_sim
 	url = https://github.com/kczttm/urgantry_sim
-[submodule "external/geo_kin_core"]
-	path = external/geo_kin_core
-	url = https://github.com/Euler-Rodrigues-Lab/geo_kin_core.git
-[submodule "external/XRT_devices"]
-	path = external/XRT_devices
-	url = https://github.com/Euler-Rodrigues-Lab/XRT_devices.git
