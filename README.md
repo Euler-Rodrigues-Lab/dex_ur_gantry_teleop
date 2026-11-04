@@ -260,3 +260,30 @@ session = geo_kin.RetargetSession(
 ```
 
 Older wheels must be upgraded to accept `workspace_offset`.
+
+### Interactive IK branch previews
+
+```bash
+uv run python scripts/preview_bimanual_table.py
+```
+
+The bimanual preview starts with symmetric Sharpa hands around a visual jar,
+wrists up and elbows outward. Click the MuJoCo window, then use **Left/Right**
+to cycle the left arm and **Down/Up** to cycle the right arm. Each arm has eight
+FK-validated solutions for this fixed target; the terminal prints branch numbers.
+All branches preserve the hand targets, but some may intersect the scene.
+Changes snap between static configurations; this is not a trajectory planner or
+a contact/dynamics grasp simulation. The jar is a visual reference.
+
+The licensed wheel must support `urgantry` and `sharpa`. If needed, set
+`GEO_KIN_LICENSE` to your gantry-enabled license before running.
+
+For the earlier single-arm comparison:
+
+```bash
+uv run python scripts/preview_wrist_up.py
+```
+
+Keys **1/2/3** select original, wrist-up/elbow-inward, and wrist-up/elbow-outward.
+Both scripts accept `--render OUTPUT_DIRECTORY` to save images and pose reports;
+use `MUJOCO_GL=egl` when rendering without a display.
