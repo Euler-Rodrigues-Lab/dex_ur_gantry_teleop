@@ -1,4 +1,4 @@
-"""Near-table wrist branch comparison; 1 = original, 2 = wrist up inward, 3 = wrist up outward (default).
+"""Near-table wrist branch comparison; 1 = original, 2 = wrist up inward (default), 3 = wrist up outward.
 
 This is a synthetic target based on the mustard sample, not reconstructed video
 motion. Branch switching is a static comparison, not a collision-free trajectory.
@@ -80,13 +80,13 @@ def main():
                     '-video_size','960x720','-i','-','-frames:v','1',str(args.render/f'{name}.png')],
                     input=renderer.render().tobytes(),check=True)
         return
-    selection=[outward]
+    selection=[high]
     def key(key):
         if key==ord('1'):selection[0]=low;print('Original branch',flush=True)
         if key==ord('2'):selection[0]=high;print('Wrist up, elbow inward',flush=True)
         if key==ord('3'):selection[0]=outward;print('Wrist up, elbow outward',flush=True)
-    heights(outward)
-    print('Showing wrist up, elbow outward. Press 1: original / 2: wrist up inward / 3: wrist up outward. Static FK comparison; close to exit.',flush=True)
+    heights(high)
+    print('Showing original wrist-up branch, elbow inward. Press 1: original / 2: wrist up inward / 3: wrist up outward. Static FK comparison; close to exit.',flush=True)
     with managed_viewer(m,d,key_callback=key,show_left_ui=False,show_right_ui=False) as v:
         with v.lock():
             v.cam.lookat[:]=camera.lookat;v.cam.distance=camera.distance

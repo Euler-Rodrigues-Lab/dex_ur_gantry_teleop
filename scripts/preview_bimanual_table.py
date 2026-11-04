@@ -67,14 +67,15 @@ def main():
             d.qpos[ids]=q;mujoco.mj_forward(m,d)
             wrist=min(d.xpos[m.body(f'{side}_{n}_link').id,2] for n in ['wrist_1','wrist_2'])
             elbow=d.xpos[m.body(f'{side}_forearm_link').id]
-            return round(float(wrist),6),float(sign*elbow[0])
+            return round(float(wrist),6),float(elbow[2])
         branches.sort(key=lambda q:tuple(np.round(q,8)))
         q=max(branches,key=measure);measure(q)
         assert len(branches)==8, f'Expected eight branches for this nonsingular pose; found {len(branches)}'
         all_branches[side]=branches;arm_ids[side]=ids
         selected[side]=next(i for i,b in enumerate(branches) if np.array_equal(q,b))
         reports[side]=dict(target_world=target_world.tolist(),branches=len(branches),q=q.tolist(),
-                           wrist_min_z=measure(q)[0],elbow_outward=measure(q)[1])
+                           wrist_min_z=measure(q)[0],elbow_z=measure(q)[1],
+                           elbow_outward=float(sign*d.xpos[m.body(f'{side}_forearm_link').id,0]))
     mujoco.mj_forward(m,d)
     # Check actual transformed mesh extents for both hands (including fingertips).
     for side in ['left','right']:

@@ -268,7 +268,7 @@ uv run python scripts/preview_bimanual_table.py
 ```
 
 The bimanual preview starts with symmetric Sharpa hands around a visual jar,
-wrists up and elbows outward. Click the MuJoCo window, then use **Left/Right**
+the original wrist-up preference (higher elbow breaks wrist-height ties). Click the MuJoCo window, then use **Left/Right**
 to cycle the left arm and **Down/Up** to cycle the right arm. Each arm has eight
 FK-validated solutions for this fixed target; the terminal prints branch numbers.
 All branches preserve the hand targets, but some may intersect the scene.
