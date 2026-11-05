@@ -8,7 +8,7 @@ from xrt_devices.integrations.eef import bones_to_eef_action
 
 class EEFInputTests(unittest.TestCase):
     def test_missing_elbows_and_one_hand(self):
-        fixture=Path(__file__).resolve().parents[1]/'external/XRT_devices/tests/fixtures/body_processing_reference.npz'
+        fixture=Path(__file__).resolve().parent/'fixtures/body_processing_reference.npz'
         with np.load(fixture) as d:
             bones=[Bone(int(i),p,q) for i,p,q in zip(d['iobt/input_ids'],d['iobt/input_positions'],d['iobt/input_quaternions'])]
         original=bones_to_eef_action(bones)
