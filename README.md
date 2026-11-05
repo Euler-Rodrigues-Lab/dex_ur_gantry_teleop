@@ -322,7 +322,9 @@ uv run --extra devices gantry-teleop --hand wuji --device xr --safety-filter
 
 MediaPipe uses `--device mediapipe`. Offline replay also accepts `--headless`.
 Keep the existing `--workspace-offset X Y Z` and `--offset` options as needed.
-The filter is disabled unless `--safety-filter` is supplied. The older wheel
+The filter is **enabled by default** in teleop and the replay renderer. Use
+`--no-safety-filter` to explicitly disable it; `--safety-filter` remains accepted.
+Direct wheel callers must still pass `safety_filter=True`. The older wheel
 must be replaced with the rebuilt wheel that accepts these constructor options.
 
 Edit [`dex_ur_gantry_teleop/assets/safety_capsules.json`](dex_ur_gantry_teleop/assets/safety_capsules.json)

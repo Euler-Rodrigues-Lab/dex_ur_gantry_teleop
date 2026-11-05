@@ -23,7 +23,7 @@ def _run():
     p.add_argument('--frames',help='Existing geo_kin_core frame-stream NPZ')
     p.add_argument('--sample',choices=['ipman_roll','picking_up_mustard'],default='ipman_roll')
     p.add_argument('--headless',action='store_true')
-    p.add_argument('--safety-filter', action='store_true', help='Enable Rust XPBD wrist/table/column safety filter')
+    p.add_argument('--safety-filter', action=argparse.BooleanOptionalAction, default=True, help='Rust XPBD wrist/table/column safety filter (enabled by default)')
     p.add_argument('--safety-config', type=Path, default=model_path().parent/'safety_capsules.json', help='Editable capsule/obstacle/XPBD JSON configuration')
     p.add_argument('--no-human-overlay',action='store_true',help='Hide the recorded human skeleton')
     p.add_argument('--steps',type=int,default=0,help='Stop after this many total updates, including loops')

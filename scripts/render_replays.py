@@ -17,7 +17,7 @@ from dex_ur_gantry_teleop.visualization import ReplayOverlay, append_overlay_sce
 from dex_ur_gantry_teleop.viz import apply_position_targets
 
 
-def render(sample, destination, hand="sharpa", workspace_offset=(0., 0., 0.), frames=None, wrist_branch="wrist_up", safety_filter=False):
+def render(sample, destination, hand="sharpa", workspace_offset=(0., 0., 0.), frames=None, wrist_branch="wrist_up", safety_filter=True):
     session=geo_kin.RetargetSession(robot='urgantry',hand=hand,
         collision_avoidance=False,functional_offset=False,arm_ik_limited=False,workspace_offset=workspace_offset,wrist_branch=wrist_branch,
         safety_filter=safety_filter,safety_config=(model_path().parent/"safety_capsules.json").read_text() if safety_filter else None)
@@ -81,7 +81,7 @@ def main():
     parser.add_argument('--output',type=Path,default=Path(__file__).resolve().parents[1]/'docs/media')
     parser.add_argument('--frames',type=Path)
     parser.add_argument('--wrist-branch',choices=['wrist_up','wrist_down'],default='wrist_up')
-    parser.add_argument('--safety-filter',action='store_true')
+    parser.add_argument('--safety-filter',action=argparse.BooleanOptionalAction,default=True,help='Enable Rust XPBD safety filtering (default); opt out with --no-safety-filter')
     parser.add_argument('--sample',choices=['ipman_roll','picking_up_mustard'])
     parser.add_argument('--workspace-offset', nargs=3, type=float, default=(0.,0.,0.), metavar=('X','Y','Z'), help='Workspace translation in meters: forward, left, up')
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
