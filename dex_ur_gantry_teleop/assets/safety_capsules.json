@@ -1,0 +1,128 @@
+{
+  "capsules": {
+    "sharpa": [
+      {
+        "name": "palm_wrist",
+        "body": "wrist_3_link",
+        "a": [
+          0,
+          -0.025,
+          0
+        ],
+        "b": [
+          0,
+          0.27144,
+          0
+        ],
+        "radius": 0.045
+      },
+      {
+        "name": "wrist_bend",
+        "body": "wrist_2_link",
+        "a": [
+          0,
+          0,
+          -0.025
+        ],
+        "b": [
+          0,
+          0,
+          0.14
+        ],
+        "radius": 0.045
+      },
+      {
+        "name": "wrist_connector",
+        "body": "wrist_1_link",
+        "a": [
+          0,
+          -0.03,
+          0
+        ],
+        "b": [
+          0,
+          0.127,
+          0
+        ],
+        "radius": 0.06
+      }
+    ],
+    "wuji": [
+      {
+        "name": "palm_wrist",
+        "body": "wrist_3_link",
+        "a": [
+          0,
+          -0.025,
+          0
+        ],
+        "b": [
+          0,
+          0.2665,
+          0
+        ],
+        "radius": 0.045
+      },
+      {
+        "name": "wrist_bend",
+        "body": "wrist_2_link",
+        "a": [
+          0,
+          0,
+          -0.025
+        ],
+        "b": [
+          0,
+          0,
+          0.14
+        ],
+        "radius": 0.045
+      },
+      {
+        "name": "wrist_connector",
+        "body": "wrist_1_link",
+        "a": [
+          0,
+          -0.03,
+          0
+        ],
+        "b": [
+          0,
+          0.127,
+          0
+        ],
+        "radius": 0.06
+      }
+    ]
+  },
+  "table": {
+    "height": 0.775,
+    "margin": 0.001
+  },
+  "column": {
+    "a": [
+      0,
+      -0.3825,
+      0.766
+    ],
+    "b": [
+      0,
+      -0.3825,
+      1.555
+    ],
+    "radius": 0.0636396103,
+    "margin": 0.001
+  },
+  "solver": {
+    "margin": 0.001,
+    "compliance": 1e-08,
+    "iterations": 20,
+    "tolerance": 1e-05,
+    "max_projection_step": 0.05,
+    "max_joint_correction": 0.35,
+    "max_joint_velocity": 3.0,
+    "max_position_correction": 0.08,
+    "max_rotation_correction": 0.35,
+    "path_step": 0.01
+  }
+}

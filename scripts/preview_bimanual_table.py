@@ -14,9 +14,12 @@ from dex_ur_gantry_teleop.viewer import managed_viewer, configure_camera
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--render',type=Path)
+    p.add_argument('--capsules',action='store_true',help='Show exploratory palm/wrist and column capsules')
+    p.add_argument('--safety-config',type=Path,default=model_path().parent/'safety_capsules.json')
     args=p.parse_args()
     s=geo_kin.RetargetSession(robot='urgantry',hand='sharpa',functional_offset=False,
-                            arm_ik_limited=False,collision_avoidance=False)
+                            arm_ik_limited=False,collision_avoidance=False,
+                            safety_filter=True,safety_config=args.safety_config.read_text())
     spec=mujoco.MjSpec.from_file(str(model_path('sharpa')))
     spec.worldbody.add_geom(name='preview_jar',type=mujoco.mjtGeom.mjGEOM_CYLINDER,
         pos=[0.,.045,.855],size=[.055,.08,0],rgba=[.35,.55,.65,1],contype=0,conaffinity=0)
@@ -67,14 +70,14 @@ def main():
             d.qpos[ids]=q;mujoco.mj_forward(m,d)
             wrist=min(d.xpos[m.body(f'{side}_{n}_link').id,2] for n in ['wrist_1','wrist_2'])
             elbow=d.xpos[m.body(f'{side}_forearm_link').id]
-            return round(float(wrist),6),float(elbow[2])
+            return round(float(wrist),6),float(sign*elbow[0])
         branches.sort(key=lambda q:tuple(np.round(q,8)))
         q=max(branches,key=measure);measure(q)
         assert len(branches)==8, f'Expected eight branches for this nonsingular pose; found {len(branches)}'
         all_branches[side]=branches;arm_ids[side]=ids
         selected[side]=next(i for i,b in enumerate(branches) if np.array_equal(q,b))
         reports[side]=dict(target_world=target_world.tolist(),branches=len(branches),q=q.tolist(),
-                           wrist_min_z=measure(q)[0],elbow_z=measure(q)[1],
+                           wrist_min_z=measure(q)[0],elbow_z=float(d.xpos[m.body(f'{side}_forearm_link').id,2]),
                            elbow_outward=float(sign*d.xpos[m.body(f'{side}_forearm_link').id,0]))
     mujoco.mj_forward(m,d)
     # Check actual transformed mesh extents for both hands (including fingertips).
@@ -97,6 +100,13 @@ def main():
         a=d.xpos[m.body(f'left_{name}_link').id]*np.array([-1.,1.,1.])
         b=d.xpos[m.body(f'right_{name}_link').id]
         np.testing.assert_allclose(a,b,atol=1e-5)
+    from dex_ur_gantry_teleop.capsule_preview import draw_safety_state
+    def capsule_state():
+        state=s.safety_capsules_at("left",d.qpos[arm_ids["left"]])
+        right=s.safety_capsules_at("right",d.qpos[arm_ids["right"]])
+        state["capsules"]=[c for c in state["capsules"] if c["side"]=="left"]+[c for c in right["capsules"] if c["side"]=="right"]
+        return state
+    show_capsules=[args.capsules]
     print(json.dumps(reports,indent=2),flush=True)
     camera=mujoco.MjvCamera();configure_camera(camera)
     camera.lookat[:]=[0.,-.02,1.04];camera.distance=1.9;camera.elevation=-20;camera.azimuth=270
@@ -105,10 +115,12 @@ def main():
         (args.render/'pose.json').write_text(json.dumps(reports,indent=2))
         with mujoco.Renderer(m,720,960) as r:
             r.update_scene(d,camera=camera)
+            if args.capsules:draw_safety_state(r.scene,capsule_state())
             subprocess.run(['ffmpeg','-v','error','-y','-f','rawvideo','-pixel_format','rgb24','-video_size','960x720','-i','-','-frames:v','1',str(args.render/'jar_pose.png')],input=r.render().tobytes(),check=True)
         return
     pending=[]
     def key_callback(key):
+        if key in (ord("C"),ord("c")):show_capsules[0]=not show_capsules[0]
         # GLFW key codes; callbacks only enqueue changes for the viewer loop.
         action={263:('left',-1),262:('left',1),265:('right',1),264:('right',-1)}.get(key)
         if action:pending.append(action)
@@ -120,6 +132,7 @@ def main():
             viewer.cam.azimuth=camera.azimuth;viewer.cam.elevation=camera.elevation
         print('Left/right arrows: LEFT arm. Up/down arrows: RIGHT arm. Branches snap; no trajectory or collision filtering.',flush=True)
         announce()
+        print("C toggles capsule overlays; geometry only, no XPBD correction.",flush=True)
         while viewer.is_running():
             with viewer.lock():
                 while pending:
@@ -127,6 +140,8 @@ def main():
                     selected[side]=(selected[side]+step)%len(all_branches[side])
                     d.qpos[arm_ids[side]]=all_branches[side][selected[side]]
                     mujoco.mj_forward(m,d);announce()
+                viewer.user_scn.ngeom=0
+                if show_capsules[0]:draw_safety_state(viewer.user_scn,capsule_state())
             viewer.sync();time.sleep(1/60)
 
 

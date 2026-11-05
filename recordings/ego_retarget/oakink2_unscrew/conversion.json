@@ -1,0 +1,5 @@
+{
+  "table_z": 0,
+  "method": "documented OakInk2 tabletop; fixed initial camera XY/yaw; virtual body height=table_z+0.60474159",
+  "upstream_revision": "907dbaae8a14c448b5d8a41e8e03bce28c8d5e6e"
+}

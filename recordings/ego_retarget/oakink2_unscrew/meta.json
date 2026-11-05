@@ -1,0 +1,120 @@
+{
+ "clip": "unscrew_bottle_cap",
+ "dataset": "OakInk2",
+ "sequence": "scene_01__A007++seq__90724a6acd7d7f462f5a__2023-04-21-10-17-48",
+ "scene": "scene_01",
+ "subject": "A007",
+ "rig": "OakInk2 egocentric camera (head-mounted RGB, serial 104422070969)",
+ "task": "unscrew_bottle_cap",
+ "task_label": "unscrew",
+ "task_naming": "the program primitive and its object, verb_object (unscrew + bottle cap)",
+ "task_description": "Unscrew the cap of the large black and yellow striped bottle.",
+ "task_target": "Unscrew the bottle.",
+ "source_path": "https://huggingface.co/datasets/kelvin34501/OakInk-v2/resolve/21705616140d726607027e70d58b7837f442ffd8/anno_preview/scene_01__A007++seq__90724a6acd7d7f462f5a__2023-04-21-10-17-48.pkl",
+ "source_frames": "https://huggingface.co/datasets/kelvin34501/OakInk-v2/resolve/21705616140d726607027e70d58b7837f442ffd8/data/scene_01__A007++seq__90724a6acd7d7f462f5a__2023-04-21-10-17-48.tar:scene_01__A007++seq__90724a6acd7d7f462f5a__2023-04-21-10-17-48/104422070969",
+ "window": [
+  678,
+  1788
+ ],
+ "window_unit": "OakInk2 mocap frame ids (120 Hz), end exclusive",
+ "episode_frames": 598,
+ "episode_mocap_frames": 2392,
+ "fps": 30.0,
+ "mocap_fps": 120,
+ "frame_spacing_mocap": {
+  "min": 2,
+  "median": 4.0,
+  "max": 6
+ },
+ "frames": 278,
+ "duration_s": 9.2417,
+ "image_size": [
+  848,
+  480
+ ],
+ "bottle_body_lowest_vertex_z_mm": 0.55,
+ "units": {
+  "position": "m",
+  "velocity": "m/s",
+  "pixels": "px",
+  "time": "s"
+ },
+ "world_from_oakink2_world": [
+  [
+   1.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  [
+   0.0,
+   0.0,
+   -1.0,
+   0.0
+  ],
+  [
+   0.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  [
+   0.0,
+   0.0,
+   0.0,
+   1.0
+  ]
+ ],
+ "objects": {
+  "cap": {
+   "obj_id": "O02@0015@00001",
+   "name": "large black and yellow striped bottle cap",
+   "mesh": "objects/O02@0015@00001/model.obj"
+  },
+  "body": {
+   "obj_id": "O02@0015@00002",
+   "name": "large black and yellow striped bottle body",
+   "mesh": "objects/O02@0015@00002/model.obj"
+  }
+ },
+ "conventions": {
+  "hands": "axis 1 of every (T, 2, ...) array: 0 = left, 1 = right",
+  "joints": "21: 0 wrist; thumb 1-4, index 5-8, middle 9-12, ring 13-16, pinky 17-20, base to tip",
+  "fingertips": "joints 4, 8, 12, 16, 20 (thumb, index, middle, ring, pinky)",
+  "world": "OakInk2's world frame (metres, +y up, from its calibrated cameras and mocap) rotated +90 deg about x so that +z is up: p = R_up p_oakink2 (world_from_oakink2_world); the table top is at z = 0 (the lowest vertex of the bottle body, from its recorded pose and mesh, is at z = 0.5 mm)",
+  "camera": "OpenCV: x right, y down, z forward; cam = R^T (world - t) with head_pose_world = [R t; 0 1]",
+  "head_pose_world": "camera-to-world 4x4 (the inverse of OakInk2's egocentric cam_extr, moved into the output world)",
+  "timestamps": "(mocap frame id - first mocap frame id) / 120 s: the camera frames are mostly every 4th mocap frame but not always, so the spacing is 2 to 6 mocap frames; the mp4 files play at a constant 30 fps",
+  "quaternion": "wrist_quat_world is [qw, qx, qy, qz]: the rotation of OakInk2's MANO root (global orient), moved into the output world; MANO's root axes, not a tracker wrist frame",
+  "skeleton": "OakInk2's MANO parameters evaluated with the MANO model as its toolkit does (manotorch: left model unchanged, flat hand mean, wrist moved to the stored translation, fingertips at vertices 745, 317, 444 (445 left), 556, 673)",
+  "in_view": "hand labelled, wrist more than 5 cm in front of the camera and its pixel inside the image",
+  "skeleton_px": "NaN where the joint is at or behind the camera (z <= 5 cm)",
+  "objects": "objects.npz pose_world (T, P, 4, 4): mesh frame -> output world for part P of objects.npz 'part'; the meshes in objects/<obj_id>/ are OakInk2's object_repair models (metres), byte for byte",
+  "annotations": "OakInk2's program segment(s) overlapping the window: start_idx inclusive, end_idx exclusive, in clip frames; mocap_frames are the dataset's own (inclusive) frame ids",
+  "missing": "NaN, never zeros"
+ },
+ "label_source": "OakInk2's shipped annotation: MANO hands and object poses from its multi-view mocap and RGB-D rig, not estimates from the egocentric video",
+ "annotations": [
+  {
+   "text": "Unscrew the cap of the large black and yellow striped bottle.",
+   "start_idx": 0,
+   "end_idx": 278,
+   "mocap_frames": [
+    650,
+    1787
+   ],
+   "primitive": "unscrew",
+   "interaction_mode": "rh_main",
+   "right_hand": "unscrew large black and yellow striped bottle cap",
+   "left_hand": "hold large black and yellow striped bottle body",
+   "mocap_frames_right_hand": [
+    678,
+    1787
+   ],
+   "mocap_frames_left_hand": [
+    650,
+    1787
+   ]
+  }
+ ]
+}

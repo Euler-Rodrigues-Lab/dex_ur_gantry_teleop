@@ -63,7 +63,7 @@ Sharpa remains the default. Use `--hand wuji` for both 20-joint Wuji hands:
 ```bash
 uv run gantry-teleop --hand wuji --sample picking_up_mustard --loop
 uv run gantry-teleop --hand wuji --sample ipman_roll --loop
-uv run gantry-teleop --hand wuji --device xr
+uv run --extra devices gantry-teleop --hand wuji --device xr
 uv run gantry-generate --hand wuji
 ```
 
@@ -97,7 +97,7 @@ uv run python scripts/render_replays.py --hand wuji --output docs/media
 
 ```bash
 uv sync --extra devices
-uv run gantry-teleop --device xr --alignment first_frame
+uv run --extra devices gantry-teleop --device xr --alignment first_frame
 uv sync --extra mediapipe
 uv run gantry-teleop --device mediapipe --alignment shoulder_attached
 ```
@@ -268,7 +268,7 @@ uv run python scripts/preview_bimanual_table.py
 ```
 
 The bimanual preview starts with symmetric Sharpa hands around a visual jar,
-the original wrist-up preference (higher elbow breaks wrist-height ties). Click the MuJoCo window, then use **Left/Right**
+wrists up and elbows outward, matching the symmetric cup-holding baseline. Click the MuJoCo window, then use **Left/Right**
 to cycle the left arm and **Down/Up** to cycle the right arm. Each arm has eight
 FK-validated solutions for this fixed target; the terminal prints branch numbers.
 All branches preserve the hand targets, but some may intersect the scene.
@@ -287,3 +287,193 @@ uv run python scripts/preview_wrist_up.py
 Keys **1/2/3** select original, wrist-up/elbow-inward, and wrist-up/elbow-outward.
 Both scripts accept `--render OUTPUT_DIRECTORY` to save images and pose reports;
 use `MUJOCO_GL=egl` when rendering without a display.
+
+### Rust XPBD wrist safety
+
+Use the updated gantry wheel and enable the safety filter explicitly:
+
+```bash
+uv run gantry-teleop --hand sharpa --sample picking_up_mustard --loop --safety-filter
+uv run --extra devices gantry-teleop --hand wuji --device xr --safety-filter
+```
+
+MediaPipe uses `--device mediapipe`. Offline replay also accepts `--headless`.
+Keep the existing `--workspace-offset X Y Z` and `--offset` options as needed.
+The filter is disabled unless `--safety-filter` is supplied. The older wheel
+must be replaced with the rebuilt wheel that accepts these constructor options.
+
+Edit [`dex_ur_gantry_teleop/assets/safety_capsules.json`](dex_ur_gantry_teleop/assets/safety_capsules.json)
+and restart teleop to change geometry without rebuilding Rust. To keep variants:
+
+```bash
+uv run gantry-teleop --safety-filter --safety-config /path/to/my_capsules.json
+```
+
+The `sharpa` and `wuji` lists each have three independently adjustable capsules:
+
+- `palm_wrist`: attached to `wrist_3_link`, endpoints `[0,-0.025,0]` to `[0,0.27144,0]` for Sharpa or `[0,0.2665,0]` for Wuji.
+- `wrist_bend`: attached to `wrist_2_link`, endpoints `[0,0,-0.025]` to `[0,0,0.14]`.
+- `wrist_connector`: attached to `wrist_1_link`, endpoints `[0,-0.030,0]` to `[0,0.127,0]`, radius 0.060 m. Its elbow-side endpoint extends past the wrist-1 joint to cover the forearm connection; its wrist-side endpoint stops at the wrist-2 joint, overlapping `wrist_bend`.
+- The palm and bend capsules retain radius 0.045 m; the connector uses 0.060 m to cover its larger measured cross-section.
+
+Endpoints are in the named link's local frame; lengths, radii and margins are
+meters. The palm capsule follows the local Y axis; the bend follows local Z, and the connector follows local Y.
+Fingertips intentionally protrude. These are configurable approximations, not
+certified mesh envelopes. The default obstacles are a horizontal table
+half-space at world Z=0.775 m and a column capsule. The table constraint also
+applies outside the tabletop footprint. The overlay uses the exact world-space
+capsules returned by Rust, so geometry is not reconstructed in Python.
+
+`solver` controls clearance margin (1 mm by default), XPBD compliance, iteration count,
+joint correction limits, joint velocity (rad/s), hand-base position/orientation
+correction limits (meters/radians), and joint-path sampling step (radians).
+Corrections happen inside Rust `RetargetSession.solve`, after analytic IK and
+before returning commands. Rust uses shared collision primitives, exact segment
+distance and analytic joint Jacobians. No Python/MuJoCo projection loop runs in
+teleop. Joint rate limiting also applies to otherwise clear targets while this
+filter is enabled, so fast recordings may lag the requested pose.
+
+The filter makes a local correction, does not search alternate IK branches,
+and rejects an elbow/wrist sign flip introduced by projection. Blocked goals or
+excessive corrections hold the affected arm and hand. An already penetrating
+initial pose is rejected rather than labeled safe. Recenter/loop reset clears
+per-frame diagnostics but retains the configuration. Console diagnostics report
+`clear`, `rate_limited`, `corrected`, and hold reasons. The arm capsule overlay is
+automatic whenever safety is enabled, including with `--no-human-overlay`.
+
+This protects only the configured wrist/palm capsules against table/column.
+It does not check fingertips, elbows, the rest of the arms, inter-arm collision,
+the jar or other objects. Joint-path clearance is sampled, not a continuous
+collision proof. This implementation is for the kinematic simulator; hardware
+has not been validated.
+
+Direct wheel use (JSON text, not a filename):
+
+```python
+from pathlib import Path
+import geo_kin
+session = geo_kin.RetargetSession(
+    robot="urgantry", hand="sharpa", functional_offset=False,
+    arm_ik_limited=False, collision_avoidance=False,
+    safety_filter=True, control_rate_hz=60,
+    safety_config=Path("dex_ur_gantry_teleop/assets/safety_capsules.json").read_text(),
+)
+# session.solve(frame, q_current_left=..., q_current_right=...)
+# session.safety_state contains capsules, obstacles, and correction reports.
+```
+
+Inspect dimensions in the branch viewer using the same file:
+
+```bash
+uv run python scripts/preview_bimanual_table.py --capsules \
+  --safety-config dex_ur_gantry_teleop/assets/safety_capsules.json
+```
+
+The branch viewer displays Rust geometry but intentionally does not filter the
+arrow-key-selected branches. Use teleop for enabled correction.
+
+
+### Fixed wrist branch and tighter clearance
+
+Choose the branch at startup:
+
+```bash
+uv run --extra devices gantry-teleop --hand sharpa --device xr --safety-filter --wrist-branch wrist_up
+uv run gantry-teleop --hand wuji --sample picking_up_mustard --loop --safety-filter --wrist-branch wrist_down
+```
+
+`wrist_up` is the symmetric cup-holding preview branch; `wrist_down` is the
+previous teleop default. Teleop and the replay renderer now default to `wrist_up`. This choice is immutable for
+that session. Rust fixes the shoulder/elbow root signs as well as the selected
+wrist flip. Missing/singular solutions hold with `selected_branch_unavailable`;
+there is no fallback to another root. Reset, recenter, and replay loops preserve
+the choice. Teleop initializes the simulator in an equivalent home hand pose
+on the chosen branch, before tracking starts. Feedback from another branch
+holds with `feedback_branch_mismatch`; it does not silently change the lock.
+The names describe the wrist flip relative to the reference cup pose; they are
+not an absolute height guarantee for every possible hand orientation.
+
+The Python constructor accepts `wrist_branch="wrist_up"` or `"wrist_down"`;
+pass `wrist_branch="wrist_up"` explicitly when calling the wheel directly (its compatibility default remains down). `session.wrist_branch` is read-only. The low-level `eef_ik` diagnostic and arrow-key
+branch viewer still inspect all analytic roots; they do not change the branch
+used by `session.solve` or the safety command filter.
+
+Edit `assets/safety_capsules.json` inside the Python package:
+
+- `table.margin`: extra clearance from the capsule surface to the tabletop,
+  now **0.001 m (1 mm)**.
+- `column.margin`: extra clearance to the column capsule, also **0.001 m**.
+- `solver.margin`: fallback for older/custom configs that omit either margin.
+- `radius`: each protected capsule's radius, currently **0.045 m**; its 5 mm
+  padding above the model's nominal 40 mm wrist radius is separate from the
+  extra obstacle margin.
+- `table.height`: physical tabletop world height; keep this at the measured
+  surface rather than changing it to tune clearance.
+- `column.radius`: physical conservative column envelope; the square column's
+  circumscribed capsule is wider than its flat sides. A small clearance margin
+  does not remove that geometric conservatism.
+
+For example, set `table.margin` to `0.0005` for 0.5 mm, and leave `column.margin`
+at `0.001` for 1 mm. Nonnegative margins are accepted; do not increase
+`solver.tolerance` to bypass the clearance check. Changes apply on restart.
+
+The main capsule centerline now reaches the **extended middle-finger PIP**
+(271.44 mm along final-wrist local Y for Sharpa, 266.5 mm for Wuji), and extends
+25 mm rearward. The rounded end adds the radius beyond each endpoint. The bend
+capsule extends from -25 mm to +140 mm on wrist-2 local Z. Fingers can still
+protrude; these dimensions follow the neutral extended hand rather than dynamic
+finger joint positions. Inspect edits with the capsule preview before replay.
+
+### Upgrade a stale provisioned wheel
+
+A `TypeError` for `workspace_offset`, `safety_filter`, or `wrist_branch` means
+the loaded binary is too old; a source checkout update alone cannot add these
+wheel APIs. In particular, SHA-256
+`3394a7eee371ddf29be673c779c3d027dab7545b63c6d15b2dad6d348bc793e3`
+is the October 16 CMU IAM build and does not support `workspace_offset`.
+
+Obtain the updated wheel bundle from your EuRoLa distributor. Private wheels and
+organization licenses are not included in this Git repository. The current build
+must support `wrist_1_link`: older XPBD wheels reject the new three-capsule config.
+Use your organization's license (it must cover `urgantry` and your selected hand).
+
+Stop running teleop/Python processes, extract the bundle, and run from this repo:
+
+```bash
+git pull --ff-only
+git submodule update --init --recursive
+uv sync
+export BUNDLE=/absolute/path/to/extracted/bundle
+export GEO_KIN_LICENSE="$BUNDLE/geo_kin_license.toml"
+uv run geo-kin-provision register --product urgantry-sharpa --replace \
+  --wheel "$BUNDLE/geo_kin-0.1.0-cp310-abi3-manylinux_2_35_x86_64.whl" \
+  --license "$GEO_KIN_LICENSE" --activate
+uv run geo-kin-provision install
+uv run python "$BUNDLE/verify_install.py"
+uv run gantry-teleop --hand wuji --sample picking_up_mustard --safety-filter
+```
+
+The verifier checks both hands, both fixed wrist branches, workspace offsets and
+**six total capsules** (three per arm). To keep XR dependencies installed, use
+`uv run --extra devices gantry-teleop --device xr --safety-filter` for live input.
+
+This repo's provision product is `urgantry-sharpa`; the combined wheel contains
+**both Sharpa and Wuji**, so `--hand wuji` uses the same installation. If another
+project explicitly uses product `urgantry-wuji`, register it under that product
+as well. `--replace` is required because the wheel filename/version is unchanged.
+The bundle verifier checks the installed binary hash and the new APIs. Restart
+running Python/teleop processes after replacing the shared installation.
+
+## Egocentric hand recordings
+
+Four clips from [ego_retarget](https://github.com/Ingenio17/ego_retarget) are available under `recordings/ego_retarget`: OakInk2 bottle-unscrewing and EgoVerse stitching, sewing, and appliance repair. See the [branch study](docs/EGO_BRANCH_STUDY.md) for replay commands, the wrist-up/down comparison with Rust safety enabled, and the virtual body/table calibration assumptions.
+
+### Current wrist protection
+
+Three overlapping capsules per arm cover the palm/wrist, the wrist bend, and the
+next short link toward the elbow. `wrist_connector` uses local endpoints
+`[0,-0.030,0]` and `[0,0.127,0]`, radius `0.060` m: extended toward the forearm
+connection and shortened on the hand side. Edit the JSON and restart teleop to
+apply adjustments. Wrist-up is the application default and stays locked.
+
+![Three wrist capsules with corrected connector coverage](docs/media/three_wrist_capsules.png)

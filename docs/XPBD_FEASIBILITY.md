@@ -1,12 +1,15 @@
 # Gantry capsule safety feasibility
 
-Status: preliminary numerical feasibility check, not implemented in the wheel.
+Status: historical feasibility probe. A bounded Rust filter with two slim articulated
+capsules is now integrated into the wheel; see the README Rust XPBD section.
+The numerical probe below describes the superseded oversized single capsule.
 
 ## Agreed scope
 
-- Start from the original wrist-up branch used in the first preview (higher
-  elbow breaks wrist-height ties), not the later elbow-outward variant.
-- One combined palm/wrist capsule per hand; fingertips may protrude.
+- Use the symmetric two-hand cup-holding pose as the baseline, as clarified
+  by the user. Preserve the selected IK branch during local correction.
+- One slim palm/wrist capsule and an overlapping wrist-bend capsule per arm;
+  fingertips may protrude. Initial radius is 45 mm, not the oversized PCA fit.
 - Obstacles: tabletop surface and a vertical capsule enclosing the torso column.
 - Do not switch IK branches automatically during filtering. Retain continuity;
   if a local correction fails or exceeds a configured budget, hold and report.
@@ -69,3 +72,19 @@ This probe did not test nonzero compliance, temporal streams, branch retention,
 full-arm/self-collision, finger contacts, hardware, or runtime performance.
 Finite-difference gradients and per-frame PCA refitting are exploratory tools,
 not the proposed real-time production implementation.
+
+
+## Integrated implementation validation
+
+The replacement runs entirely in Rust with two configured 45 mm radius capsules,
+analytic Jacobians and an exact shared capsule-gap routine. Python only loads
+JSON, forwards frames and draws Rust-returned geometry. The config is
+`dex_ur_gantry_teleop/assets/safety_capsules.json`.
+
+Both complete bundled recordings passed with safety enabled for Sharpa and Wuji,
+with no held arm updates (rate limiting is active). A deliberately lowered
+mustard replay (`--workspace-offset 0 0 -0.20`) exercised 287 corrected arm
+updates and 51 holds at the Cartesian correction limit. Independent tests
+verify world capsule endpoints against MuJoCo, table clearance and per-frame
+joint bounds; Rust tests cover gradients, column/table corrections and fail-closed
+behavior. This does not validate hardware or the excluded arm/finger geometry.

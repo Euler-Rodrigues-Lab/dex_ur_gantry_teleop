@@ -1,0 +1,11 @@
+{
+  "assumed_table_z": -0.6171835064888,
+  "method": "1st percentile of all fingertip heights; unmeasured tabletop; z-up assumed from upstream documentation",
+  "upstream_revision": "907dbaae8a14c448b5d8a41e8e03bce28c8d5e6e",
+  "mean_heading_variant": {
+    "file": "frames_mean_heading.npz",
+    "method": "duration-weighted circular mean of normalized horizontal camera forward; fixed throughout replay; initial camera XY and table estimate unchanged",
+    "yaw_degrees": 53.192329070674305,
+    "preferred_wrist_branch": "wrist_up"
+  }
+}

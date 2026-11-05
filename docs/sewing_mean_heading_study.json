@@ -1,0 +1,153 @@
+{
+  "protocol": "60 Hz; fixed first-frame virtual body; no functional offset; unrestricted joints; branch-specific home; metrics after 1 s startup; bimanual tracking <=20 mm and <=10 degrees",
+  "upstream_revision": "907dbaae8a14c448b5d8a41e8e03bce28c8d5e6e",
+  "wheel_sha256": "75f5c0458e31af3e8034cb16388917761b898fb6730af2801837f16a08e05d0c",
+  "extension_sha256": "1300f0ad3127c819cd6a31a2d9097fe8fdb78e12a26004e880edf1433c62b1d8",
+  "input_sha256": {
+    "recordings/ego_retarget/sewing/frames_mean_heading.npz": "9f059bc4f6210b068f404519e0872fdaf4463e29093cf975c02d09306ddf5aef"
+  },
+  "safety_config_sha256": "78c9608104a6e3f529036481a24c91e86a10278e8ba2ddcb9acf87c0b23789fd",
+  "results": [
+    {
+      "clip": "sewing",
+      "hand": "sharpa",
+      "branch": "wrist_up",
+      "z_offset": 0.0,
+      "valid_arm_frames": 2278,
+      "held_arm_frames": 1514,
+      "statuses": {
+        "rate_limited": 526,
+        "path_blocked": 1407,
+        "clear": 209,
+        "selected_branch_unavailable": 98,
+        "branch_change": 2,
+        "corrected": 29,
+        "blocked": 7
+      },
+      "position_mean_mm": 435.6466935359212,
+      "position_p95_mm": 953.693071402849,
+      "orientation_mean_deg": 60.569772367462576,
+      "orientation_p95_deg": 144.67630712271577,
+      "bimanual_tracking_percent": 0.0,
+      "relative_hand_error_mean_mm": 789.5364402559909,
+      "joint_travel_rad": 109.30207274614847
+    },
+    {
+      "clip": "sewing",
+      "hand": "sharpa",
+      "branch": "wrist_up",
+      "z_offset": -0.05,
+      "valid_arm_frames": 2278,
+      "held_arm_frames": 1795,
+      "statuses": {
+        "clear": 110,
+        "path_blocked": 1608,
+        "rate_limited": 345,
+        "selected_branch_unavailable": 187,
+        "corrected": 28
+      },
+      "position_mean_mm": 453.18256101634995,
+      "position_p95_mm": 940.7156195554686,
+      "orientation_mean_deg": 72.51494640176179,
+      "orientation_p95_deg": 142.16506979188958,
+      "bimanual_tracking_percent": 0.0,
+      "relative_hand_error_mean_mm": 828.4751473829295,
+      "joint_travel_rad": 76.23872389241723
+    },
+    {
+      "clip": "sewing",
+      "hand": "sharpa",
+      "branch": "wrist_up",
+      "z_offset": 0.05,
+      "valid_arm_frames": 2278,
+      "held_arm_frames": 1475,
+      "statuses": {
+        "selected_branch_unavailable": 177,
+        "path_blocked": 1259,
+        "rate_limited": 570,
+        "clear": 231,
+        "branch_change": 24,
+        "corrected": 2,
+        "blocked": 15
+      },
+      "position_mean_mm": 441.04362735344233,
+      "position_p95_mm": 969.3917257489135,
+      "orientation_mean_deg": 57.22376827412585,
+      "orientation_p95_deg": 138.37388187248976,
+      "bimanual_tracking_percent": 0.0,
+      "relative_hand_error_mean_mm": 803.5086292048218,
+      "joint_travel_rad": 117.77720155370216
+    },
+    {
+      "clip": "sewing",
+      "hand": "wuji",
+      "branch": "wrist_up",
+      "z_offset": 0.0,
+      "valid_arm_frames": 2278,
+      "held_arm_frames": 1710,
+      "statuses": {
+        "selected_branch_unavailable": 154,
+        "path_blocked": 1310,
+        "rate_limited": 422,
+        "clear": 82,
+        "branch_change": 11,
+        "corrected": 64,
+        "blocked": 235
+      },
+      "position_mean_mm": 464.5196001299767,
+      "position_p95_mm": 940.9009012601317,
+      "orientation_mean_deg": 67.68886854732425,
+      "orientation_p95_deg": 141.059625036812,
+      "bimanual_tracking_percent": 0.0,
+      "relative_hand_error_mean_mm": 815.0921952277478,
+      "joint_travel_rad": 94.85969672443109
+    },
+    {
+      "clip": "sewing",
+      "hand": "wuji",
+      "branch": "wrist_up",
+      "z_offset": -0.05,
+      "valid_arm_frames": 2278,
+      "held_arm_frames": 1710,
+      "statuses": {
+        "rate_limited": 391,
+        "path_blocked": 1585,
+        "clear": 133,
+        "selected_branch_unavailable": 92,
+        "corrected": 44,
+        "blocked": 33
+      },
+      "position_mean_mm": 440.01575649298184,
+      "position_p95_mm": 926.813016487868,
+      "orientation_mean_deg": 65.26623407607386,
+      "orientation_p95_deg": 143.70690674166417,
+      "bimanual_tracking_percent": 0.0,
+      "relative_hand_error_mean_mm": 813.0026486396516,
+      "joint_travel_rad": 87.72421782301755
+    },
+    {
+      "clip": "sewing",
+      "hand": "wuji",
+      "branch": "wrist_up",
+      "z_offset": 0.05,
+      "valid_arm_frames": 2278,
+      "held_arm_frames": 1668,
+      "statuses": {
+        "selected_branch_unavailable": 252,
+        "path_blocked": 1163,
+        "rate_limited": 471,
+        "clear": 137,
+        "branch_change": 21,
+        "corrected": 2,
+        "blocked": 232
+      },
+      "position_mean_mm": 469.1105851716618,
+      "position_p95_mm": 956.4703165805086,
+      "orientation_mean_deg": 64.1357580050197,
+      "orientation_p95_deg": 140.79971357692975,
+      "bimanual_tracking_percent": 0.0,
+      "relative_hand_error_mean_mm": 824.3456813502091,
+      "joint_travel_rad": 101.90002803034847
+    }
+  ]
+}

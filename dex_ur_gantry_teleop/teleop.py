@@ -1,5 +1,7 @@
 """Licensed, kinematic EEF + Sharpa teleoperation and offline replay."""
 import argparse
+from pathlib import Path
+from collections import Counter
 from contextlib import ExitStack, nullcontext
 import time
 import numpy as np
@@ -16,10 +18,13 @@ from .viz import apply_position_targets
 def _run():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--hand',choices=['sharpa','wuji'],default='sharpa')
+    p.add_argument('--wrist-branch',choices=['wrist_up','wrist_down'],default='wrist_up',help='Fixed analytic wrist branch for the session; wrist_up matches the cup preview')
     p.add_argument('--device',choices=['replay','xr','mediapipe'],default='replay')
     p.add_argument('--frames',help='Existing geo_kin_core frame-stream NPZ')
     p.add_argument('--sample',choices=['ipman_roll','picking_up_mustard'],default='ipman_roll')
     p.add_argument('--headless',action='store_true')
+    p.add_argument('--safety-filter', action='store_true', help='Enable Rust XPBD wrist/table/column safety filter')
+    p.add_argument('--safety-config', type=Path, default=model_path().parent/'safety_capsules.json', help='Editable capsule/obstacle/XPBD JSON configuration')
     p.add_argument('--no-human-overlay',action='store_true',help='Hide the recorded human skeleton')
     p.add_argument('--steps',type=int,default=0,help='Stop after this many total updates, including loops')
     p.add_argument('--loop',action='store_true',help='Repeat replay; reset robot and calibration each pass')
@@ -37,17 +42,32 @@ def _run():
     if not np.isfinite(args.rate) or args.rate<=0 or args.steps<0:p.error('rate must be positive and steps nonnegative')
     if not np.isfinite(args.workspace_offset).all():p.error("workspace offset must be finite")
     if args.loop and args.device!='replay':p.error('--loop is only available for replay')
+    if args.device=='xr':
+        from importlib.util import find_spec
+        missing=[name for name in ('uvicorn','fastapi','aiortc','loguru') if find_spec(name) is None]
+        if missing:p.error('Missing XR dependencies: '+', '.join(missing)+'. Run: uv run --extra devices gantry-teleop --device xr (plus your other flags)')
     if args.device=='replay' and not args.frames:
         args.frames=str(model_path().parent/'sample_motion'/f'{args.sample}.npz')
+    safety_config=args.safety_config.read_text() if args.safety_filter else None
     session=resolve_session('urgantry',args.hand,backend='licensed',collision_avoidance=False,
-                            base_alignment_mode=args.alignment,functional_offset=not args.no_offset,arm_ik_limited=args.arm_joint_limits,workspace_offset=args.workspace_offset)
+                            base_alignment_mode=args.alignment,functional_offset=not args.no_offset,arm_ik_limited=args.arm_joint_limits,workspace_offset=args.workspace_offset,
+                            safety_filter=args.safety_filter,safety_config=safety_config,control_rate_hz=args.rate,wrist_branch=args.wrist_branch)
     if sha256_of_file(model_path(args.hand)) != session.model_sha256:
         raise RuntimeError('Simulator XML differs from the geometry embedded in this wheel')
     model=load_model(args.hand);data=mujoco.MjData(model)
     mujoco.mj_resetDataKeyframe(model,data,model.key('home').id)
     arms={side:[model.actuator(f'{side}_{name}').id for name in ARM_JOINTS] for side in ['left','right']}
     hands={side:[model.actuator(name).id for name in session.hand_joint_names(side)] for side in arms}
+    for side in arms:data.ctrl[arms[side]]=session.default_q[side]
+    apply_position_targets(model,data,unlimited_actuators=None if args.arm_joint_limits else arms['left']+arms['right'])
+    print(f'Wrist branch locked: {session.wrist_branch}',flush=True)
     session.reset(data.ctrl[arms['right']],data.ctrl[arms['left']])
+    if args.safety_filter:
+        for side in arms:
+            check=session.filter_arm_safety(side,data.ctrl[arms[side]],data.ctrl[arms[side]])
+            if not check['accepted']:raise RuntimeError(f'Cannot enable safety: {side} initial pose is {check["status"]}; adjust the initial pose or configured geometry')
+        from .capsule_preview import draw_safety_state
+        print(f'Rust XPBD enabled: {args.safety_config}',flush=True)
     with ExitStack() as stack:
         if args.device=='replay':
             from xrt_devices.integrations.geo_kin import open_motion_source
@@ -75,6 +95,7 @@ def _run():
             from .visualization import ReplayOverlay
             overlay=ReplayOverlay(viewer,alignment=args.alignment,functional_offset=not args.no_offset,workspace_offset=args.workspace_offset)
         replay_tick=0
+        safety_counts=Counter();last_safety_status={}
         count=0;accepted={side:0 for side in arms};held={side:0 for side in arms}
         while (not args.steps or count<args.steps) and (viewer is None or viewer.is_running()):
             tick=time.monotonic()
@@ -88,6 +109,8 @@ def _run():
                     replay_tick=0
                     with viewer.lock() if viewer else nullcontext():
                         mujoco.mj_resetDataKeyframe(model,data,model.key('home').id)
+                        for side in arms:data.ctrl[arms[side]]=session.default_q[side]
+                        apply_position_targets(model,data,unlimited_actuators=None if args.arm_joint_limits else arms['left']+arms['right'])
                         session.reset(data.ctrl[arms['right']],data.ctrl[arms['left']])
                         if overlay:overlay.reset()
                 recorded=source.frame_at_time(replay_tick/args.rate)
@@ -102,6 +125,12 @@ def _run():
                 with viewer.lock():
                     overlay.draw(recorded,frame,session,{side:data.ctrl[arms[side]].copy() for side in arms})
             out=session.solve(frame or EEFFrame(),q_current_right=data.ctrl[arms['right']],q_current_left=data.ctrl[arms['left']])
+            if args.safety_filter:
+                for side,status in out.diag.solution_branch.items():
+                    safety_counts[status]+=1
+                    if status not in ('clear','corrected','rate_limited','missing_target','missing_body_frame') and last_safety_status.get(side)!=status:
+                        print(f'Rust XPBD {side}: {status}; holding arm',flush=True)
+                    last_safety_status[side]=status
             for side in arms:
                 q=getattr(out,'q_goal_'+side)
                 if q is not None:data.ctrl[arms[side]]=q;accepted[side]+=1
@@ -109,9 +138,15 @@ def _run():
                 q=getattr(out,'q_goal_'+side+'_hand')
                 if q is not None:data.ctrl[hands[side]]=q
             apply_position_targets(model,data,unlimited_actuators=None if args.arm_joint_limits else arms['left']+arms['right'])
-            if viewer:viewer.sync()
+            if viewer:
+                if args.safety_filter:
+                    with viewer.lock():
+                        if not overlay:viewer.user_scn.ngeom=0
+                        draw_safety_state(viewer.user_scn,session.safety_state)
+                viewer.sync()
             count+=1
             if not args.headless:time.sleep(max(0,1/args.rate-(time.monotonic()-tick)))
+    if args.safety_filter:print(f'Rust XPBD statuses: {dict(safety_counts)}')
     print(f'{count} frames; accepted arms={accepted}; held arms={held}; kinematics only')
 
 

@@ -17,9 +17,10 @@ from dex_ur_gantry_teleop.visualization import ReplayOverlay, append_overlay_sce
 from dex_ur_gantry_teleop.viz import apply_position_targets
 
 
-def render(sample, destination, hand="sharpa", workspace_offset=(0., 0., 0.)):
+def render(sample, destination, hand="sharpa", workspace_offset=(0., 0., 0.), frames=None, wrist_branch="wrist_up", safety_filter=False):
     session=geo_kin.RetargetSession(robot='urgantry',hand=hand,
-        collision_avoidance=False,functional_offset=False,arm_ik_limited=False,workspace_offset=workspace_offset)
+        collision_avoidance=False,functional_offset=False,arm_ik_limited=False,workspace_offset=workspace_offset,wrist_branch=wrist_branch,
+        safety_filter=safety_filter,safety_config=(model_path().parent/"safety_capsules.json").read_text() if safety_filter else None)
     if sha256_of_file(model_path(hand)) != session.model_sha256:
         raise RuntimeError('Wheel/model signature mismatch')
     model=load_model(hand)
@@ -27,8 +28,10 @@ def render(sample, destination, hand="sharpa", workspace_offset=(0., 0., 0.)):
     mujoco.mj_resetDataKeyframe(model,data,model.key('home').id)
     arms={side:[model.actuator(side+'_'+name).id for name in ARM_JOINTS] for side in ('left','right')}
     hands={side:[model.actuator(name).id for name in session.hand_joint_names(side)] for side in arms}
+    for side in arms:data.ctrl[arms[side]]=session.default_q[side]
+    apply_position_targets(model,data,unlimited_actuators=arms['left']+arms['right'])
     session.reset(data.ctrl[arms['right']],data.ctrl[arms['left']])
-    source=open_motion_source(frames=str(model_path().parent/'sample_motion'/f'{sample}.npz'))
+    source=open_motion_source(frames=str(frames or model_path().parent/'sample_motion'/f'{sample}.npz'))
     viewer=SimpleNamespace(user_scn=mujoco.MjvScene(model,maxgeom=2000))
     overlay=ReplayOverlay(viewer,functional_offset=False,workspace_offset=workspace_offset)
     camera=mujoco.MjvCamera();configure_camera(camera)
@@ -56,6 +59,9 @@ def render(sample, destination, hand="sharpa", workspace_offset=(0., 0., 0.)):
                         if q is not None:data.ctrl[hands[side]]=q
                     apply_position_targets(model,data,unlimited_actuators=arms['left']+arms['right'])
                     if tick%2:continue
+                    if safety_filter:
+                        from dex_ur_gantry_teleop.capsule_preview import draw_safety_state
+                        draw_safety_state(viewer.user_scn,session.safety_state)
                     renderer.update_scene(data,camera=camera)
                     append_overlay_scene(renderer.scene,viewer.user_scn)
                     encoder.stdin.write(renderer.render().tobytes())
@@ -73,11 +79,17 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--hand',choices=['sharpa','wuji'],default='sharpa')
     parser.add_argument('--output',type=Path,default=Path(__file__).resolve().parents[1]/'docs/media')
+    parser.add_argument('--frames',type=Path)
+    parser.add_argument('--wrist-branch',choices=['wrist_up','wrist_down'],default='wrist_up')
+    parser.add_argument('--safety-filter',action='store_true')
     parser.add_argument('--sample',choices=['ipman_roll','picking_up_mustard'])
     parser.add_argument('--workspace-offset', nargs=3, type=float, default=(0.,0.,0.), metavar=('X','Y','Z'), help='Workspace translation in meters: forward, left, up')
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
+    if args.frames:
+        render(args.frames.parent.name,args.output,args.hand,args.workspace_offset,args.frames,args.wrist_branch,args.safety_filter)
+        return
     for sample in [args.sample] if args.sample else ['picking_up_mustard','ipman_roll']:
-        render(sample,args.output,args.hand,args.workspace_offset)
+        render(sample,args.output,args.hand,args.workspace_offset,wrist_branch=args.wrist_branch,safety_filter=args.safety_filter)
 
 
 if __name__=='__main__':main()
